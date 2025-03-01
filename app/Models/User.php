@@ -45,4 +45,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the interactions for the user.
+     */
+    public function interactions()
+    {
+        return $this->hasMany(Interaction::class);
+    }
+
+    /**
+     * Get the recommendations for the user.
+     */
+    public function recommendations()
+    {
+        return $this->hasMany(Recommendation::class);
+    }
 }
