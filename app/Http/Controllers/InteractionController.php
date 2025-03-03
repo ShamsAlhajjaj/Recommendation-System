@@ -3,61 +3,58 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
-use App\Models\Interaction;
-use App\Services\RecommendationService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Contracts\InteractionRepositoryInterface;
 
 class InteractionController extends Controller
 {
-    protected $recommendationService;
+    protected $interactionRepository;
     
-    public function __construct(RecommendationService $recommendationService)
+    /**
+     * Create a new controller instance.
+     *
+     * @param InteractionRepositoryInterface $interactionRepository
+     * @return void
+     */
+    public function __construct(InteractionRepositoryInterface $interactionRepository)
     {
-        $this->recommendationService = $recommendationService;
+        $this->interactionRepository = $interactionRepository;
     }
     
-    public function toggleLike(Article $article)
-    {
-        $user = Auth::user();
-        
-        $existingLike = Interaction::where([
-            'user_id' => $user->id,
-            'article_id' => $article->id,
-            'interaction_type' => 'like'
-        ])->first();
-        
-        if ($existingLike) {
-            $existingLike->delete();
-        } else {
-            Interaction::create([
-                'user_id' => $user->id,
-                'article_id' => $article->id,
-                'interaction_type' => 'like'
-            ]);
-            
-            // Generate recommendations after a like interaction
-            $this->recommendationService->generateRecommendations($user);
-        }
-        
-        return back();
-    }
-
+    /**
+     * Record a view interaction for an article.
+     *
+     * @param  \App\Models\Article  $article
+     * @return \Illuminate\Http\Response
+     */
     public function view(Article $article)
     {
         $user = Auth::user();
         
         // Record the view interaction
-        Interaction::create([
+        $this->interactionRepository->create([
             'user_id' => $user->id,
             'article_id' => $article->id,
             'interaction_type' => 'view'
         ]);
         
-        // Generate recommendations after a view interaction
-        $this->recommendationService->generateRecommendations($user);
-        
-        // Redirect to the article show page
         return redirect()->route('articles.show', $article);
+    }
+    
+    /**
+     * Toggle a like interaction for an article.
+     *
+     * @param  \App\Models\Article  $article
+     * @return \Illuminate\Http\Response
+     */
+    public function toggleLike(Article $article)
+    {
+        $user = Auth::user();
+        
+        // Toggle the like interaction
+        $this->interactionRepository->toggleLike($user, $article->id);
+        
+        return back();
     }
 } 

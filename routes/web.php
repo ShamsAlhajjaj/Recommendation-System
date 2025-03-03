@@ -42,7 +42,7 @@ Route::prefix('admin')->group(function () {
         ->middleware(RedirectIfAdmin::class)
         ->name('admin.dashboard');
     
-    // Admin Article Management
+    // Admin Management Routes
     Route::middleware(RedirectIfAdmin::class)->group(function () {
         // Article Routes
         Route::get('/articles', [AdminArticleController::class, 'index'])->name('admin.articles.index');
@@ -59,6 +59,15 @@ Route::prefix('admin')->group(function () {
         Route::get('/categories/{category}/edit', [AdminCategoryController::class, 'edit'])->name('admin.categories.edit');
         Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->name('admin.categories.update');
         Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
+        
+        // User Management Routes
+        Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.users.index');
+        Route::get('/users/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('admin.users.create');
+        Route::post('/users', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store');
+        Route::get('/users/{user}/edit', [App\Http\Controllers\Admin\UserController::class, 'edit'])->name('admin.users.edit');
+        Route::put('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::get('/users/{user}/activity', [App\Http\Controllers\Admin\UserController::class, 'activity'])->name('admin.users.activity');
     });
 });
 
