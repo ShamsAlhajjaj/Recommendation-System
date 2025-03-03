@@ -13,7 +13,7 @@ class ArticleFactory extends Factory
     {
         return [
             'title' => $this->faker->sentence(),
-            'description' => $this->faker->paragraphs(3, true),
+            'body' => $this->faker->paragraphs(10, true),
         ];
     }
 } 

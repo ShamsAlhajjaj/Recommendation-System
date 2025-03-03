@@ -1,0 +1,39 @@
+.like-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    margin-top: 15px;
+}
+
+.like-button:hover {
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+.like-button.liked {
+    color: #e91e63;
+}
+
+.like-button i {
+    font-size: 18px;
+}
+
+.like-count {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.article-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.like-section {
+    margin-top: 10px;
+} 

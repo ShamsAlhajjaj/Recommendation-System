@@ -9,7 +9,7 @@ class Article extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'description'];
+    protected $fillable = ['title', 'body'];
 
     public function categories()
     {
@@ -19,6 +19,16 @@ class Article extends Model
     public function interactions()
     {
         return $this->hasMany(Interaction::class);
+    }
+
+    public function likes()
+    {
+        return $this->interactions()->where('interaction_type', 'like');
+    }
+
+    public function isLikedBy(User $user)
+    {
+        return $this->likes()->where('user_id', $user->id)->exists();
     }
 
     public function recommendations()

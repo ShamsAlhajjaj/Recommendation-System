@@ -9,7 +9,11 @@ class Interaction extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'article_id', 'interaction_type'];
+    protected $fillable = [
+        'user_id',
+        'article_id',
+        'interaction_type',
+    ];
 
     public function user()
     {
