@@ -29,7 +29,7 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" style="color: var(--primary-color);">{{ $article->title }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         @foreach($article->categories as $category)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-1" style="background-color: rgba(233, 196, 106, 0.2); color: #b39338;">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-1" style="background-color: rgba(233, 106, 106, 0.2); color: #b33838;">
                                 {{ $category->name }}
                             </span>
                         @endforeach

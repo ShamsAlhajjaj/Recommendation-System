@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CategoryStoreRequest;
+use App\Http\Requests\Admin\CategoryUpdateRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
@@ -33,27 +35,19 @@ class CategoryController extends Controller
     /**
      * Store a newly created category in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\Admin\CategoryStoreRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(CategoryStoreRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:categories',
-        ]);
+        return DB::transaction(function () use ($request) {
+            Category::create([
+                'name' => $request->name,
+            ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        Category::create([
-            'name' => $request->name,
-        ]);
-
-        return redirect()->route('admin.categories.index')
-            ->with('success', 'Category created successfully.');
+            return redirect()->route('admin.categories.index')
+                ->with('success', 'Category created successfully.');
+        });
     }
 
     /**
@@ -70,28 +64,20 @@ class CategoryController extends Controller
     /**
      * Update the specified category in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\Admin\CategoryUpdateRequest  $request
      * @param  \App\Models\Category  $category
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Category $category)
+    public function update(CategoryUpdateRequest $request, Category $category)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
-        ]);
+        return DB::transaction(function () use ($request, $category) {
+            $category->update([
+                'name' => $request->name,
+            ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        $category->update([
-            'name' => $request->name,
-        ]);
-
-        return redirect()->route('admin.categories.index')
-            ->with('success', 'Category updated successfully.');
+            return redirect()->route('admin.categories.index')
+                ->with('success', 'Category updated successfully.');
+        });
     }
 
     /**
@@ -108,9 +94,11 @@ class CategoryController extends Controller
                 ->with('error', 'Cannot delete category because it has associated articles.');
         }
         
-        $category->delete();
+        return DB::transaction(function () use ($category) {
+            $category->delete();
 
-        return redirect()->route('admin.categories.index')
-            ->with('success', 'Category deleted successfully.');
+            return redirect()->route('admin.categories.index')
+                ->with('success', 'Category deleted successfully.');
+        });
     }
 } 

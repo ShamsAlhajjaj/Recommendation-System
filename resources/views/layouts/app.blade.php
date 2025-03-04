@@ -33,6 +33,11 @@
                 </header>
             @endisset
 
+            <!-- Flash Messages -->
+            <div class="container mt-3">
+                <x-flash-message />
+            </div>
+
             <!-- Page Content -->
             <main>
                 {{ $slot }}

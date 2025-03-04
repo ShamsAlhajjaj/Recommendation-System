@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Article;
-use App\Services\RecommendationService;
+use App\Services\ArticleService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 class ArticleController extends Controller
 {
-    protected $recommendationService;
+    protected $articleService;
     
-    public function __construct(RecommendationService $recommendationService)
+    public function __construct(ArticleService $articleService)
     {
-        $this->recommendationService = $recommendationService;
+        $this->articleService = $articleService;
     }
    
     /**
@@ -23,15 +25,22 @@ class ArticleController extends Controller
      */
     public function index()
     {
-        $articles = Article::with('categories')->latest()->paginate(10);
-        
-        // Get recommendations for the authenticated user
-        $recommendedArticles = collect();
-        if (Auth::check()) {
-            $recommendedArticles = $this->recommendationService->getRecommendationsForUser(Auth::user(), 3);
+        try {
+            $articles = $this->articleService->getAllArticles(10);
+            
+            // Get recommendations for the authenticated user
+            $recommendedArticles = $this->articleService->getRecommendedArticlesForUser(Auth::user(), 3);
+            
+            return view('dashboard', compact('articles', 'recommendedArticles'));
+        } catch (Exception $e) {
+            Log::error('Error displaying articles: ' . $e->getMessage(), [
+                'exception' => $e,
+                'user_id' => Auth::id()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'There was a problem loading the articles. Please try again later.');
         }
-        
-        return view('dashboard', compact('articles', 'recommendedArticles'));
     }
     
     /**
@@ -42,15 +51,23 @@ class ArticleController extends Controller
      */
     public function show(Article $article)
     {
-        $article->load('categories');
-        
-        // Get recommendations for the authenticated user
-        $recommendedArticles = collect();
-        if (Auth::check()) {
-            $recommendedArticles = $this->recommendationService->getRecommendationsForUser(Auth::user(), 3);
+        try {
+            $article = $this->articleService->getArticleWithCategories($article);
+            
+            // Get recommendations for the authenticated user
+            $recommendedArticles = $this->articleService->getRecommendedArticlesForUser(Auth::user(), 3);
+            
+            return view('articles.show', compact('article', 'recommendedArticles'));
+        } catch (Exception $e) {
+            Log::error('Error displaying article: ' . $e->getMessage(), [
+                'exception' => $e,
+                'article_id' => $article->id,
+                'user_id' => Auth::id()
+            ]);
+            
+            return redirect()->route('dashboard')
+                ->with('error', 'There was a problem loading the article. Please try again later.');
         }
-        
-        return view('articles.show', compact('article', 'recommendedArticles'));
     }
     
     // Other controller methods will go here...

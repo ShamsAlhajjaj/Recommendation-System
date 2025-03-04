@@ -5,7 +5,7 @@
 @section('page-header', 'Users')
 
 @section('page-actions')
-<a href="{{ route('admin.users.create') }}" class="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">
+<a href="{{ route('admin.users.create') }}" class="btn-primary">
     Create New User
 </a>
 @endsection
@@ -13,32 +13,32 @@
 @section('content')
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+        <thead style="background-color: rgba(38, 70, 83, 0.05);">
             <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interactions</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recommendations</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--primary-color);">ID</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--primary-color);">Name</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--primary-color);">Email</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--primary-color);">Interactions</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--primary-color);">Recommendations</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--primary-color);">Actions</th>
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
             @forelse($users as $user)
-                <tr>
+                <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $user->id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $user->name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" style="color: var(--primary-color);">{{ $user->name }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $user->email }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $user->interactions_count }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $user->recommendations_count }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-3">
-                            <a href="{{ route('admin.users.activity', $user) }}" class="text-gray-700 hover:text-black transition-colors">Activity</a>
-                            <a href="{{ route('admin.users.edit', $user) }}" class="text-gray-700 hover:text-black transition-colors">Edit</a>
+                            <a href="{{ route('admin.users.activity', $user) }}" class="transition-colors" style="color: var(--secondary-color);">Activity</a>
+                            <a href="{{ route('admin.users.edit', $user) }}" class="transition-colors" style="color: var(--secondary-color);">Edit</a>
                             <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this user? This will also delete all their interactions and recommendations.');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-gray-700 hover:text-black transition-colors">Delete</button>
+                                <button type="submit" class="transition-colors" style="color: var(--accent-tertiary);">Delete</button>
                             </form>
                         </div>
                     </td>

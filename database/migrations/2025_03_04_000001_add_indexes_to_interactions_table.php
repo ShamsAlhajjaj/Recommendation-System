@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('interactions', function (Blueprint $table) {
+            // Add indexes to frequently queried columns
+            $table->index('user_id');
+            $table->index('article_id');
+            $table->index(['user_id', 'article_id']); // Composite index for queries that filter on both columns
+            $table->index(['interaction_type', 'user_id']); // For queries filtering by interaction type and user
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('interactions', function (Blueprint $table) {
+            // Drop indexes
+            $table->dropIndex(['user_id']);
+            $table->dropIndex(['article_id']);
+            $table->dropIndex(['user_id', 'article_id']);
+            $table->dropIndex(['interaction_type', 'user_id']);
+        });
+    }
+}; 

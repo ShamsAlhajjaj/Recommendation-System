@@ -4,60 +4,66 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Interaction;
-use App\Services\RecommendationService;
+use App\Services\InteractionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 class InteractionController extends Controller
 {
-    protected $recommendationService;
+    protected $interactionService;
     
-    public function __construct(RecommendationService $recommendationService)
+    public function __construct(InteractionService $interactionService)
     {
-        $this->recommendationService = $recommendationService;
+        $this->interactionService = $interactionService;
     }
     
+    /**
+     * Toggle like status for an article
+     *
+     * @param Article $article
+     * @return \Illuminate\Http\Response
+     */
     public function toggleLike(Article $article)
     {
-        $user = Auth::user();
-        
-        $existingLike = Interaction::where([
-            'user_id' => $user->id,
-            'article_id' => $article->id,
-            'interaction_type' => 'like'
-        ])->first();
-        
-        if ($existingLike) {
-            $existingLike->delete();
-        } else {
-            Interaction::create([
-                'user_id' => $user->id,
+        try {
+            $message = $this->interactionService->toggleLike(Auth::user(), $article);
+            return back()->with('success', $message);
+        } catch (Exception $e) {
+            Log::error('Error toggling article like: ' . $e->getMessage(), [
+                'exception' => $e,
                 'article_id' => $article->id,
-                'interaction_type' => 'like'
+                'user_id' => Auth::id()
             ]);
             
-            // Generate recommendations after a like interaction
-            $this->recommendationService->generateRecommendations($user);
+            return back()->with('error', 'There was a problem processing your request. Please try again later.');
         }
-        
-        return back();
     }
 
+    /**
+     * Record a view interaction for an article
+     *
+     * @param Article $article
+     * @return \Illuminate\Http\Response
+     */
     public function view(Article $article)
     {
-        $user = Auth::user();
-        
-        // Record the view interaction
-        Interaction::create([
-            'user_id' => $user->id,
-            'article_id' => $article->id,
-            'interaction_type' => 'view'
-        ]);
-        
-        // Generate recommendations after a view interaction
-        $this->recommendationService->generateRecommendations($user);
-        
-        // Redirect to the article show page
-        return redirect()->route('articles.show', $article);
+        try {
+            $this->interactionService->recordView(Auth::user(), $article);
+            
+            // Redirect to the article show page
+            return redirect()->route('articles.show', $article);
+        } catch (Exception $e) {
+            Log::error('Error recording article view: ' . $e->getMessage(), [
+                'exception' => $e,
+                'article_id' => $article->id,
+                'user_id' => Auth::id()
+            ]);
+            
+            return redirect()->route('dashboard')
+                ->with('error', 'There was a problem viewing the article. Please try again later.');
+        }
     }
 } 

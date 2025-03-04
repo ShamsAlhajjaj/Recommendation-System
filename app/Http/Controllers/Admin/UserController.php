@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UserStoreRequest;
+use App\Http\Requests\Admin\UserUpdateRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -35,31 +38,21 @@ class UserController extends Controller
     /**
      * Store a newly created user in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\Admin\UserStoreRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(UserStoreRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        return DB::transaction(function () use ($request) {
+            User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User created successfully.');
+            return redirect()->route('admin.users.index')
+                ->with('success', 'User created successfully.');
+        });
     }
 
     /**
@@ -76,43 +69,27 @@ class UserController extends Controller
     /**
      * Update the specified user in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\Admin\UserUpdateRequest  $request
      * @param  \App\Models\User  $user
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, User $user)
+    public function update(UserUpdateRequest $request, User $user)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                Rule::unique('users')->ignore($user->id),
-            ],
-            'password' => 'nullable|string|min:8|confirmed',
-        ]);
+        return DB::transaction(function () use ($request, $user) {
+            $userData = [
+                'name' => $request->name,
+                'email' => $request->email,
+            ];
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
+            if ($request->filled('password')) {
+                $userData['password'] = Hash::make($request->password);
+            }
 
-        $userData = [
-            'name' => $request->name,
-            'email' => $request->email,
-        ];
+            $user->update($userData);
 
-        if ($request->filled('password')) {
-            $userData['password'] = Hash::make($request->password);
-        }
-
-        $user->update($userData);
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User updated successfully.');
+            return redirect()->route('admin.users.index')
+                ->with('success', 'User updated successfully.');
+        });
     }
 
     /**
@@ -123,15 +100,17 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        // Delete related recommendations and interactions first
-        $user->recommendations()->delete();
-        $user->interactions()->delete();
-        
-        // Then delete the user
-        $user->delete();
+        return DB::transaction(function () use ($user) {
+            // Delete related recommendations and interactions first
+            $user->recommendations()->delete();
+            $user->interactions()->delete();
+            
+            // Then delete the user
+            $user->delete();
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User deleted successfully.');
+            return redirect()->route('admin.users.index')
+                ->with('success', 'User deleted successfully.');
+        });
     }
 
     /**

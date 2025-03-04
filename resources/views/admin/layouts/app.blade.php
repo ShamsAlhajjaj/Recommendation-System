@@ -8,7 +8,7 @@
     <style>
         :root {
             --primary-color: #264653;
-            --primary-dark: #1d3744;
+            --primary-dark: #000000;
             --secondary-color: #2a9d8f;
             --accent-color: #e9c46a;
             --accent-secondary: #f4a261;
@@ -23,7 +23,7 @@
         .nav-link {
             position: relative;
             padding-bottom: 2px;
-            color: #4b5563;
+            color: #ffffff;
             transition: color 0.2s ease;
         }
         
