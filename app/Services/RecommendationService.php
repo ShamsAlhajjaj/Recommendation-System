@@ -3,36 +3,11 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Contracts\ArticleRepositoryInterface;
-use App\Contracts\RecommendationRepositoryInterface;
-use App\Contracts\InteractionRepositoryInterface;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Cache;
+use App\Models\Article;
+use App\Models\Recommendation;
 
 class RecommendationService
 {
-    protected $articleRepository;
-    protected $recommendationRepository;
-    protected $interactionRepository;
-    
-    /**
-     * Create a new service instance.
-     *
-     * @param ArticleRepositoryInterface $articleRepository
-     * @param RecommendationRepositoryInterface $recommendationRepository
-     * @param InteractionRepositoryInterface $interactionRepository
-     * @return void
-     */
-    public function __construct(
-        ArticleRepositoryInterface $articleRepository,
-        RecommendationRepositoryInterface $recommendationRepository,
-        InteractionRepositoryInterface $interactionRepository
-    ) {
-        $this->articleRepository = $articleRepository;
-        $this->recommendationRepository = $recommendationRepository;
-        $this->interactionRepository = $interactionRepository;
-    }
-    
     /**
      * Generate recommendations for a user based on their recent interactions
      *
@@ -42,41 +17,79 @@ class RecommendationService
      */
     public function generateRecommendations(User $user, int $limit = 5): void
     {
-        $cacheKey = "user_{$user->id}_generate_recommendations_{$limit}";
+        $recentInteractions = $this->getUserRecentInteractions($user);
+            
+        if ($recentInteractions->isEmpty()) {
+            return;
+        }
         
-        // Use a lock to prevent multiple simultaneous recommendation generations
-        Cache::lock($cacheKey, 10)->block(5, function () use ($user, $limit) {
-            $recentInteractions = $this->interactionRepository->getRecentForUser($user);
-                
-            if ($recentInteractions->isEmpty()) {
-                return;
-            }
+        $interactedArticleIds = $this->getInteractedArticleIds($user);
+        $existingRecommendationIds = $this->getExistingRecommendationIds($user);
+        $categoryIds = $this->extractCategoryIdsFromInteractions($recentInteractions);
+        
+        if (empty($categoryIds)) {
+            return;
+        }
+        
+        $recommendedArticles = $this->findRecommendedArticles(
+            $categoryIds, 
+            $interactedArticleIds, 
+            $existingRecommendationIds, 
+            $limit
+        );
             
-            $interactedArticleIds = $this->interactionRepository->getInteractedArticleIds($user);
-            $existingRecommendationIds = $this->recommendationRepository->getExistingArticleIdsForUser($user);
-            $categoryIds = $this->extractCategoryIdsFromInteractions($recentInteractions);
-            
-            if (empty($categoryIds)) {
-                return;
-            }
-            
-            $recommendedArticles = $this->articleRepository->findByCategoryIds(
-                $categoryIds, 
-                array_merge($interactedArticleIds, $existingRecommendationIds), 
-                $limit
-            );
-                
-            $this->createRecommendations($user, $recommendedArticles);
-        });
+        $this->createRecommendations($user, $recommendedArticles);
+    }
+    
+    /**
+     * Get the user's recently interacted articles
+     *
+     * @param User $user
+     * @param int $count Number of recent interactions to retrieve
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function getUserRecentInteractions(User $user, int $count = 3)
+    {
+        return $user->interactions()
+            ->latest()
+            ->take($count)
+            ->get();
+    }
+    
+    /**
+     * Get article IDs the user has already interacted with
+     *
+     * @param User $user
+     * @return array
+     */
+    private function getInteractedArticleIds(User $user): array
+    {
+        return $user->interactions()
+            ->pluck('article_id')
+            ->unique()
+            ->toArray();
+    }
+    
+    /**
+     * Get article IDs the user already has recommendations for
+     *
+     * @param User $user
+     * @return array
+     */
+    private function getExistingRecommendationIds(User $user): array
+    {
+        return $user->recommendations()
+            ->pluck('article_id')
+            ->toArray();
     }
     
     /**
      * Extract category IDs from user interactions
      *
-     * @param Collection $interactions
+     * @param \Illuminate\Database\Eloquent\Collection $interactions
      * @return array
      */
-    private function extractCategoryIdsFromInteractions(Collection $interactions): array
+    private function extractCategoryIdsFromInteractions($interactions): array
     {
         $categoryIds = [];
         foreach ($interactions as $interaction) {
@@ -88,16 +101,41 @@ class RecommendationService
     }
     
     /**
+     * Find articles to recommend based on categories and exclusion lists
+     *
+     * @param array $categoryIds
+     * @param array $interactedArticleIds
+     * @param array $existingRecommendationIds
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function findRecommendedArticles(
+        array $categoryIds, 
+        array $interactedArticleIds, 
+        array $existingRecommendationIds, 
+        int $limit
+    ) {
+        return Article::whereHas('categories', function ($query) use ($categoryIds) {
+                $query->whereIn('categories.id', $categoryIds);
+            })
+            ->whereNotIn('id', $interactedArticleIds)
+            ->whereNotIn('id', $existingRecommendationIds)
+            ->orderBy('created_at', 'desc')
+            ->take($limit)
+            ->get();
+    }
+    
+    /**
      * Create recommendation records for a user
      *
      * @param User $user
-     * @param Collection $articles
+     * @param \Illuminate\Database\Eloquent\Collection $articles
      * @return void
      */
-    private function createRecommendations(User $user, Collection $articles): void
+    private function createRecommendations(User $user, $articles): void
     {
         foreach ($articles as $article) {
-            $this->recommendationRepository->create([
+            Recommendation::create([
                 'user_id' => $user->id,
                 'article_id' => $article->id
             ]);
@@ -109,10 +147,15 @@ class RecommendationService
      *
      * @param User $user
      * @param int $limit
-     * @return Collection
+     * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getRecommendationsForUser(User $user, int $limit = 5): Collection
+    public function getRecommendationsForUser(User $user, int $limit = 5)
     {
-        return $this->recommendationRepository->getForUser($user, $limit);
+        return $user->recommendations()
+            ->with('article.categories')
+            ->latest()
+            ->take($limit)
+            ->get()
+            ->pluck('article');
     }
 } 

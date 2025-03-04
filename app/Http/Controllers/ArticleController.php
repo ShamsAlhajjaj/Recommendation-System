@@ -6,18 +6,14 @@ use Illuminate\Http\Request;
 use App\Models\Article;
 use App\Services\RecommendationService;
 use Illuminate\Support\Facades\Auth;
-use App\Contracts\ArticleRepositoryInterface;
-use Illuminate\Support\Facades\Cache;
 
 class ArticleController extends Controller
 {
     protected $recommendationService;
-    protected $articleRepository;
     
-    public function __construct(RecommendationService $recommendationService, ArticleRepositoryInterface $articleRepository)
+    public function __construct(RecommendationService $recommendationService)
     {
         $this->recommendationService = $recommendationService;
-        $this->articleRepository = $articleRepository;
     }
    
     /**
@@ -27,9 +23,7 @@ class ArticleController extends Controller
      */
     public function index()
     {
-        $articles = Cache::remember('articles_recent', now()->addHours(1), function () {
-            return $this->articleRepository->all();
-        });
+        $articles = Article::with('categories')->latest()->paginate(10);
         
         // Get recommendations for the authenticated user
         $recommendedArticles = collect();
@@ -48,11 +42,7 @@ class ArticleController extends Controller
      */
     public function show(Article $article)
     {
-        $cacheKey = "article_{$article->id}";
-        
-        $article = Cache::remember($cacheKey, now()->addHours(1), function () use ($article) {
-            return $this->articleRepository->find($article->id);
-        });
+        $article->load('categories');
         
         // Get recommendations for the authenticated user
         $recommendedArticles = collect();
