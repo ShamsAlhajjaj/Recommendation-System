@@ -12,7 +12,6 @@ A sophisticated article recommendation system built with Laravel that provides p
 - [Performance Optimizations](#performance-optimizations)
 - [Installation](#installation)
 - [Usage](#usage)
-- [API Documentation](#api-documentation)
 
 ## Overview
 
@@ -334,11 +333,3 @@ The application uses database transactions to ensure data integrity and consiste
 2. Manage articles, categories, and users
 3. View user activity and interaction statistics
 4. Create and edit content
-
-## API Documentation
-
-The system provides RESTful API endpoints for integration with other applications:
-
-- `GET /api/articles`: List all articles
-- `GET /api/articles/{id}`: Get specific article
-- `GET /api/recommendations`: Get recommendations for authenticated user
