@@ -60,6 +60,75 @@ The application follows a clean, modular architecture that separates concerns an
    - `ArticleService`: Handles article-related operations
    - `ProfileService`: Manages user profile operations
 
+### Database Schema
+
+Below is the Entity-Relationship Diagram (ERD) showing the database structure and relationships:
+
+```mermaid
+erDiagram
+    USERS {
+        bigint id PK
+        string name
+        string email UK
+        timestamp email_verified_at
+        string password
+        string remember_token
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ARTICLES {
+        bigint id PK
+        string title
+        longtext body
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CATEGORIES {
+        bigint id PK
+        string name UK
+        string description
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ARTICLE_CATEGORY {
+        bigint article_id PK,FK
+        bigint category_id PK,FK
+    }
+
+    INTERACTIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint article_id FK
+        enum interaction_type
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    RECOMMENDATIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint article_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    USERS ||--o{ INTERACTIONS : "has"
+    ARTICLES ||--o{ INTERACTIONS : "receives"
+    USERS ||--o{ RECOMMENDATIONS : "receives"
+    ARTICLES ||--o{ RECOMMENDATIONS : "is recommended in"
+    ARTICLES ||--o{ ARTICLE_CATEGORY : "belongs to"
+    CATEGORIES ||--o{ ARTICLE_CATEGORY : "has"
+```
+
+The diagram shows the following relationships:
+- Users can have multiple interactions and receive multiple recommendations
+- Articles can receive multiple interactions and be recommended multiple times
+- Articles can belong to multiple categories through the article_category pivot table
+- Categories can have multiple articles through the article_category pivot table
+
 ## Routes
 
 The application is organized with a clear routing structure that separates user and admin functionality:
