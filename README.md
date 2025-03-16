@@ -384,7 +384,6 @@ The application uses database transactions to ensure data integrity and consiste
 - **Transaction-Protected Processing**: Creates recommendations in small sets (default 3) within database transactions for data integrity
 - **Exclusion Lists**: Maintains lists of already interacted articles and existing recommendations to avoid duplicates
 - **Efficient Category Extraction**: Extracts categories from user interactions efficiently
-- **Targeted Queries**: Uses targeted queries to find articles in relevant categories
 
 ### 4. Error Handling and Logging
 
