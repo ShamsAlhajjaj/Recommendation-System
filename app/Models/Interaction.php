@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Observers\InteractionObserver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,6 +15,11 @@ class Interaction extends Model
         'article_id',
         'interaction_type',
     ];
+
+    protected static function booted(): void
+    {
+        static::observe(InteractionObserver::class);
+    }
 
     public function user()
     {

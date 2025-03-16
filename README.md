@@ -65,7 +65,9 @@ The application follows a clean, modular architecture that separates concerns an
 Below is the Entity-Relationship Diagram (ERD) showing the database structure and relationships:
 
 ```mermaid
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '16px', 'graphLayout': 'TB'}}}%%
 erDiagram
+    %% Layout direction
     USERS {
         bigint id PK
         string name
@@ -73,36 +75,6 @@ erDiagram
         timestamp email_verified_at
         string password
         string remember_token
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    ARTICLES {
-        bigint id PK
-        string title
-        longtext body
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    CATEGORIES {
-        bigint id PK
-        string name UK
-        string description
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    ARTICLE_CATEGORY {
-        bigint article_id PK,FK
-        bigint category_id PK,FK
-    }
-
-    INTERACTIONS {
-        bigint id PK
-        bigint user_id FK
-        bigint article_id FK
-        enum interaction_type
         timestamp created_at
         timestamp updated_at
     }
@@ -115,19 +87,61 @@ erDiagram
         timestamp updated_at
     }
 
-    USERS ||--o{ INTERACTIONS : "has"
-    ARTICLES ||--o{ INTERACTIONS : "receives"
-    USERS ||--o{ RECOMMENDATIONS : "receives"
-    ARTICLES ||--o{ RECOMMENDATIONS : "is recommended in"
-    ARTICLES ||--o{ ARTICLE_CATEGORY : "belongs to"
-    CATEGORIES ||--o{ ARTICLE_CATEGORY : "has"
+    CATEGORIES {
+        bigint id PK
+        string name UK
+        string description
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    INTERACTIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint article_id FK
+        enum interaction_type
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ARTICLE_CATEGORY {
+        bigint article_id PK,FK
+        bigint category_id PK,FK
+    }
+
+    ARTICLES {
+        bigint id PK
+        string title
+        longtext body
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% Relationships with functionality-specific labels
+    USERS ||--o{ RECOMMENDATIONS : "receives personalized content based on interests"
+    RECOMMENDATIONS }o--|| ARTICLES : "generated from content-based filtering"
+    USERS ||--o{ INTERACTIONS : "records views and likes on"
+    INTERACTIONS }o--|| ARTICLES : "tracks user engagement metrics"
+    CATEGORIES ||--o{ ARTICLE_CATEGORY : "classifies content into"
+    ARTICLE_CATEGORY }o--|| ARTICLES : "organized by topic for recommendations"
 ```
 
 The diagram shows the following relationships:
-- Users can have multiple interactions and receive multiple recommendations
-- Articles can receive multiple interactions and be recommended multiple times
-- Articles can belong to multiple categories through the article_category pivot table
-- Categories can have multiple articles through the article_category pivot table
+- Users receive personalized recommendations based on their interaction history and interests
+- Recommendations are generated using content-based filtering from the article collection
+- Users' views and likes are recorded as interactions with articles
+- Interactions track engagement metrics for recommendation generation
+- Articles are classified into categories for content organization
+- Categories help generate relevant recommendations based on user interests
+
+Key:
+- PK: Primary Key
+- FK: Foreign Key
+- UK: Unique Key
+- ||: Exactly one
+- o{: Zero or many
+- }o: Many to one
+- }|: One or many
 
 ## Routes
 
@@ -278,7 +292,50 @@ The application follows the Model-View-Controller architectural pattern:
 
 ### 7. Observer Pattern
 
-The application implicitly uses the Observer pattern through Laravel's event system, particularly when generating recommendations after user interactions.
+The application uses Laravel's Model Observers to implement the Observer Pattern, particularly for handling user interactions and generating recommendations:
+
+```php
+// InteractionObserver handles model events
+class InteractionObserver
+{
+    protected $recommendationService;
+
+    public function __construct(RecommendationService $recommendationService)
+    {
+        $this->recommendationService = $recommendationService;
+    }
+
+    public function created(Interaction $interaction): void
+    {
+        $this->recommendationService->generateRecommendations($interaction->user);
+    }
+
+    public function deleted(Interaction $interaction): void
+    {
+        if ($interaction->interaction_type === 'like') {
+            $this->recommendationService->generateRecommendations($interaction->user);
+        }
+    }
+}
+```
+
+The observer is registered in the Interaction model:
+
+```php
+class Interaction extends Model
+{
+    protected static function booted(): void
+    {
+        static::observe(InteractionObserver::class);
+    }
+}
+```
+
+This implementation provides:
+- Automatic handling of model events (created, deleted)
+- Clean separation of concerns
+- Reduced coupling between interaction recording and recommendation generation
+- Simplified maintenance as all observation logic is centralized
 
 ### 8. Factory Pattern
 
@@ -300,14 +357,7 @@ Several optimizations have been implemented to ensure the application performs e
 
 - **Chunking**: Large datasets are processed in chunks to reduce memory usage
 
-### 2. Caching Strategies
-
-- **Schema Default String Length**: Set to 191 characters for better compatibility with MySQL's utf8mb4 encoding
-  ```php
-  Schema::defaultStringLength(191);
-  ```
-
-### 3. Database Transactions
+### 2. Database Transactions
 
 The application uses database transactions to ensure data integrity and consistency:
 
@@ -329,21 +379,20 @@ The application uses database transactions to ensure data integrity and consiste
   ```
 - **Key Areas**: Transactions are used in user/article/category management, interaction recording, and recommendation generation
 
-### 4. Recommendation Algorithm Optimizations
+### 3. Recommendation Algorithm Optimizations
 
-- **Limit Processing**: Only processes a limited number of recent interactions (default: 3)
-- **Batch Processing**: Creates recommendations in batches
+- **Transaction-Protected Processing**: Creates recommendations in small sets (default 3) within database transactions for data integrity
 - **Exclusion Lists**: Maintains lists of already interacted articles and existing recommendations to avoid duplicates
 - **Efficient Category Extraction**: Extracts categories from user interactions efficiently
 - **Targeted Queries**: Uses targeted queries to find articles in relevant categories
 
-### 5. Error Handling and Logging
+### 4. Error Handling and Logging
 
 - **Comprehensive Exception Handling**: All service methods include try-catch blocks to handle exceptions gracefully
 - **Detailed Logging**: Errors are logged with context information for easier debugging
 - **Graceful Degradation**: The system continues to function even if recommendation generation fails
 
-### 6. Code Organization
+### 5. Code Organization
 
 - **Separation of Concerns**: Business logic is separated from controllers through service classes
 - **Single Responsibility Principle**: Each class has a single responsibility

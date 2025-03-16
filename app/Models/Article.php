@@ -21,6 +21,11 @@ class Article extends Model
         return $this->hasMany(Interaction::class);
     }
 
+    public function recommendations()
+    {
+        return $this->hasMany(Recommendation::class);
+    }
+
     public function likes()
     {
         return $this->interactions()->where('interaction_type', 'like');
@@ -31,8 +36,4 @@ class Article extends Model
         return $this->likes()->where('user_id', $user->id)->exists();
     }
 
-    public function recommendations()
-    {
-        return $this->hasMany(Recommendation::class);
-    }
 }

@@ -182,7 +182,7 @@ class RecommendationService
                 })
                 ->whereNotIn('id', $interactedArticleIds)
                 ->whereNotIn('id', $existingRecommendationIds)
-                ->orderBy('created_at', 'desc')
+                ->latest()
                 ->take($limit)
                 ->get();
         } catch (Exception $e) {
